@@ -21,17 +21,13 @@
 
 		varying vec2 vTextureCoord;
 
-		float amount = 1.;
-
-
 		void main() {
 			vec2 uv = vTextureCoord;
 			vec2 size = vec2(50.);
-			float dx = amount / size.x;
-			float dy = amount / size.y;
-			uv = vec2(dx*(floor(uv.x/dx) + 0.5),
-								dy*(floor(uv.y/dy) + 0.5));
-			vec3 tex = texture2D(uSampler, uv).rgb;
+			
+			uv = floor(uv * 50.) / 50.;
+
+			vec3 tex = texture2D(uSampler, uv + 1. / 500.).rgb;
 
 			gl_FragColor = vec4(tex, 1.0);
 		}
@@ -120,7 +116,6 @@
 
 			const image = new Image();
 			image.src = "../assets/meme-what.jpg";
-      image.crossOrigin = "anonymous";
 			image.onload = function () {
 				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
