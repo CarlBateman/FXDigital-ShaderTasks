@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+<head>
+	<script id="vertex" type="x-shader">
+		attribute vec2 aVertexPosition;
+		attribute vec2 aTextureCoord;
+
+		varying vec2 vTextureCoord;
+		varying vec3 vColor;
+
+		void main() {
+			vTextureCoord = aTextureCoord;
+			gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+		}
+	</script>
+
+	<script id="fragment" type="x-shader">
+		precision highp float;
+		uniform float uTime;
+		uniform sampler2D uSampler;
+
+		varying vec2 vTextureCoord;
+
+		void main() {
+			vec2 uv = vTextureCoord;
+			vec3 tex = texture2D(uSampler, uv ).rgb;
+
+			gl_FragColor = vec4(tex, 1.0);
+		}
+	</script>
+
+	<script type="text/javascript">
+		"use strict";
+		window.addEventListener('DOMContentLoaded', function () {
+			// Get a canvas and WebGL context
+
+			let canvas = document.getElementById("glCanvas");
+			let gl;
+
+			const names = ["webgl", "experimental-webgl", "webkit-3d", "moz-webgl"];
+			for (let i = 0; i < names.length; ++i) {
+				try {
+					gl = canvas.getContext(names[i]);
+				}
+				catch (e) { }
+				if (gl) break;
+			}
+
+			// Get source and compile to shader code
+			const vertexSource = document.getElementById("vertex").firstChild.nodeValue;
+			const fragmentSource = document.getElementById("fragment").firstChild.nodeValue;
+
+			const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+			gl.shaderSource(vertexShader, vertexSource);
+			gl.compileShader(vertexShader);
+
+			const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+			gl.shaderSource(fragmentShader, fragmentSource);
+			gl.compileShader(fragmentShader);
+
+			let shaderProgram = gl.createProgram();
+			gl.attachShader(shaderProgram, vertexShader);
+			gl.attachShader(shaderProgram, fragmentShader);
+			gl.linkProgram(shaderProgram);
+
+			// Error check
+			if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
+				console.log(gl.getShaderInfoLog(vertexShader));
+
+			if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS))
+				console.log(gl.getShaderInfoLog(fragmentShader));
+
+			if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS))
+				console.log(gl.getProgramInfoLog(shaderProgram));
+
+			// Get Data Locations
+			gl.useProgram(shaderProgram);
+
+			shaderProgram.aVertexPosition = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+			gl.enableVertexAttribArray(shaderProgram.aVertexPosition);
+
+			shaderProgram.aTextureCoord = gl.getAttribLocation(shaderProgram, "aTextureCoord");
+			gl.enableVertexAttribArray(shaderProgram.aTextureCoord);
+
+			shaderProgram.uSampler = gl.getUniformLocation(shaderProgram, 'uSampler');
+			shaderProgram.uTime = gl.getUniformLocation(shaderProgram, "uTime");
+
+
+			// Define Geometry
+			const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+			const vertexBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+			vertexBuffer.itemSize = 2;
+			vertexBuffer.numItems = vertices.length / vertexBuffer.itemSize;
+			gl.vertexAttribPointer(shaderProgram.aVertexPosition, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+			// Define texture coords
+			const textureCoords = new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]);
+			const textureBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, textureBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, textureCoords, gl.STATIC_DRAW);
+			textureBuffer.itemSize = 2;
+			textureBuffer.numItems = textureCoords.length / textureBuffer.itemSize;
+			gl.vertexAttribPointer(shaderProgram.aTextureCoord, textureBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+			// Get texture
+			const texture = gl.createTexture();
+			gl.bindTexture(gl.TEXTURE_2D, texture);
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+			const image = new Image();
+			image.src = "../assets/meme-what.jpg";
+			image.onload = function () {
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this);
+				gl.generateMipmap(gl.TEXTURE_2D);
+				draw();
+			};
+
+			// Send data to GPU and draw
+			function draw() {
+				gl.clearColor(0, 0.5, 0, 1);
+				gl.clear(gl.COLOR_BUFFER_BIT);
+
+				gl.uniform1f(shaderProgram.uTime, (Date.now() % 1000000) / 1000);
+
+				gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexBuffer.numItems);
+
+				requestAnimationFrame(draw);
+			}
+
+			requestAnimationFrame(draw);
+
+		});
+	</script>
+</head>
+<body>
+	<canvas id="glCanvas" width="500" height="500"></canvas>
+	<h1>Target</h1>
+<img src="../assets/blocky.gif" />
+</body>
+</html>
