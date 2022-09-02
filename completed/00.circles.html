@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+	<style>
+		html, body {background-color: powderblue;}
+	</style>
+	<script id="vertex" type="x-shader">
+		attribute vec2 aVertexPosition;
+		attribute vec2 aUV;
+
+		varying vec2 vUV;
+
+		void main() {
+			vUV = aUV;
+			gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+		}
+	</script>
+
+	<script id="fragment" type="x-shader">
+		precision highp float;
+		varying vec2 vUV;
+
+		const float PI = radians(180.);
+
+		float circle(vec2 uv, vec2 position, float radius, float blur) {
+			position = 0.5 + 0.5 * position;
+			float a = distance(uv, position);
+			float inner = radius - blur / 2.;
+			float outer = radius + blur / 2.;
+			
+			a = 1. - smoothstep(inner, outer, a);
+
+			return a;
+		}
+
+		void main() {
+			float size = 5.;
+			vec2 cell = (vUV) * size;
+			
+			float radius = 1. / size;
+			float blur = 0.;
+
+			vec2 position = fract(cell);
+			vec2 cellCentre = vec2(0.75, 0.75); 
+
+			float p = circle(cellCentre, position, radius, blur);
+		
+			vec4 color = vec4(vec3(p), 1);
+
+			gl_FragColor = color;
+		}
+	</script>
+
+	<script type="text/javascript">
+		"use strict";
+		window.addEventListener('DOMContentLoaded', function () {
+			// Get a canvas and WebGL context
+			let canvas = document.getElementById("glCanvas");
+			let gl;
+
+			const names = ["webgl", "experimental-webgl", "webkit-3d", "moz-webgl"];
+			for (let i = 0; i < names.length; ++i) {
+				try {
+					gl = canvas.getContext(names[i]);
+				}
+				catch (e) { }
+				if (gl) break;
+			}
+
+			// Get source and compile to shader code
+			const vertexSource = document.getElementById("vertex").firstChild.nodeValue;
+			const fragmentSource = document.getElementById("fragment").firstChild.nodeValue;
+
+			const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+			gl.shaderSource(vertexShader, vertexSource);
+			gl.compileShader(vertexShader);
+
+			const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+			gl.shaderSource(fragmentShader, fragmentSource);
+			gl.compileShader(fragmentShader);
+
+			let shaderProgram = gl.createProgram();
+			gl.attachShader(shaderProgram, vertexShader);
+			gl.attachShader(shaderProgram, fragmentShader);
+			gl.linkProgram(shaderProgram);
+
+			// Error check
+			if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
+				console.log(gl.getShaderInfoLog(vertexShader));
+
+			if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS))
+				console.log(gl.getShaderInfoLog(fragmentShader));
+
+			if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS))
+				console.log(gl.getProgramInfoLog(shaderProgram));
+
+
+			// Get Data Locations
+			shaderProgram.aVertexPosition = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+			gl.enableVertexAttribArray(shaderProgram.aVertexPosition);
+
+			shaderProgram.aUV = gl.getAttribLocation(shaderProgram, "aUV");
+			gl.enableVertexAttribArray(shaderProgram.aUV);
+
+
+			// Define Geometry
+			const vertices = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
+			const vertexBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+			vertexBuffer.itemSize = 2;
+			vertexBuffer.numItems = vertices.length / vertexBuffer.itemSize;
+			gl.vertexAttribPointer(shaderProgram.aVertexPosition, vertexBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+			const UVs = new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]);
+			const UVBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, UVBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, UVs, gl.STATIC_DRAW);
+			UVBuffer.itemSize = 2;
+			UVBuffer.numItems = UVs.length / UVBuffer.itemSize;
+			gl.vertexAttribPointer(shaderProgram.aUV, UVBuffer.itemSize, gl.FLOAT, false, 0, 0);
+
+
+			// Send data to GPU and draw
+			gl.useProgram(shaderProgram);
+
+			gl.clearColor(0, 0.5, 0, 1);
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.drawArrays(gl.TRIANGLE_STRIP, 0, vertexBuffer.numItems);
+
+		});
+	</script>
+</head>
+<body>
+	<canvas id="glCanvas" width="500" height="500"></canvas>
+</body>
+</html>
