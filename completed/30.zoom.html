@@ -123,6 +123,7 @@
 
 			const image = new Image();
 			image.src = "../assets/meme-what.jpg";
+      image.crossOrigin = "anonymous";
 			image.onload = function () {
 				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 				gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
